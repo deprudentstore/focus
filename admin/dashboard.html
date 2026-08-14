@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Focus Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">FOCUS</div>
+      <div class="sub">Admin Console</div>
+    </div>
+    <nav>
+      <a href="dashboard.html" class="active">Dashboard</a>
+      <a href="products.html">Products</a>
+      <a href="categories.html">Categories</a>
+      <a href="orders.html">Orders</a>
+      <a href="customers.html">Customers</a>
+      <a href="coupons.html">Coupons</a>
+      <a href="banners.html">Banners</a>
+      <a href="cms.html">CMS</a>
+      <a href="seo.html">SEO</a>
+      <a href="settings.html" id="navSettings">Settings</a>
+      <a href="admins.html" id="navAdmins">Admins</a>
+      <a href="auditlog.html" id="navAuditLog">Audit Log</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Dashboard</h1>
+        <div class="sub">Today's operating snapshot for FOCUS.</div>
+      </div>
+      <div class="user">
+        <div class="avatar">A</div>
+        <span>Admin User</span>
+        <button class="logout-btn" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="stats-grid" id="statsGrid">
+      <div class="status">Loading…</div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Recent Orders</h2>
+          <a href="orders.html">View all</a>
+        </div>
+        <div id="recentOrders"><div class="status">Loading…</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Top Products</h2>
+          <a href="products.html">View all</a>
+        </div>
+        <div id="topProducts"><div class="status">Loading…</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Low Stock</h2>
+          <a href="products.html">View all</a>
+        </div>
+        <div id="lowStock"><div class="status">Loading…</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>applyRoleGating();</script>
+<script>
+(async function () {
+  try {
+    const stats = await adminGet("/admin/dashboard");
+    document.getElementById("statsGrid").innerHTML = `
+      <div class="stat-card"><div class="label">Today's Sales</div><div class="value">${formatPrice(stats.todays_sales)}</div></div>
+      <div class="stat-card"><div class="label">Orders</div><div class="value">${stats.orders_count}</div></div>
+      <div class="stat-card"><div class="label">Customers</div><div class="value">${stats.customers_count}</div></div>
+      <div class="stat-card"><div class="label">Products</div><div class="value">${stats.products_count}</div></div>
+    `;
+
+    document.getElementById("lowStock").innerHTML = stats.low_stock.length
+      ? stats.low_stock.map(p => `
+        <div class="product-row">
+          <div class="left"><div class="product-thumb"></div>${p.name}</div>
+          <div style="color:#C0392B; font-weight:600;">${p.stock} left</div>
+        </div>`).join("")
+      : `<div class="status">Nothing low on stock 🎉</div>`;
+  } catch (e) { console.error(e); }
+
+  try {
+    const orders = await adminGet("/admin/orders");
+    const recent = orders.slice(0, 5);
+    document.getElementById("recentOrders").innerHTML = recent.length
+      ? recent.map(o => `
+        <div class="order-row">
+          <div>
+            <div class="order-id">${o.order_number}</div>
+            <div class="order-meta">${o.customer_name} · ${new Date(o.created_at).toLocaleDateString()}</div>
+          </div>
+          <div>${statusPill(o.status)}</div>
+        </div>`).join("")
+      : `<div class="status">No orders yet.</div>`;
+  } catch (e) { console.error(e); }
+
+  try {
+    const products = await adminGet("/admin/products");
+    const top = products.slice(0, 5);
+    document.getElementById("topProducts").innerHTML = top.length
+      ? top.map(p => `
+        <div class="product-row">
+          <div class="left"><div class="product-thumb"></div>${p.name}</div>
+          <div>${formatPrice(p.price)}</div>
+        </div>`).join("")
+      : `<div class="status">No products yet.</div>`;
+  } catch (e) { console.error(e); }
+})();
+</script>
+</body>
+</html>

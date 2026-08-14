@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMS — Focus Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">FOCUS</div>
+      <div class="sub">Admin Console</div>
+    </div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="products.html">Products</a>
+      <a href="categories.html">Categories</a>
+      <a href="orders.html">Orders</a>
+      <a href="customers.html">Customers</a>
+      <a href="coupons.html">Coupons</a>
+      <a href="banners.html">Banners</a>
+      <a href="cms.html" class="active">CMS</a>
+      <a href="seo.html">SEO</a>
+      <a href="settings.html" id="navSettings">Settings</a>
+      <a href="admins.html" id="navAdmins">Admins</a>
+      <a href="auditlog.html" id="navAuditLog">Audit Log</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>CMS</h1>
+        <div class="sub">Edit site text — changes reflect live on the storefront.</div>
+      </div>
+      <div class="user">
+        <button class="logout-btn" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="panel" id="cmsPanel">
+      <div class="status">Loading…</div>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>applyRoleGating();</script>
+<script>
+const FIELDS = [
+  { key: "cms_footer_text", label: "Footer Text" },
+  { key: "cms_about_text", label: "About Text" },
+];
+
+async function loadContent() {
+  const panel = document.getElementById("cmsPanel");
+  try {
+    const items = await adminGet("/admin/content?prefix=cms_");
+    const map = {};
+    items.forEach(i => map[i.key] = i.value);
+
+    panel.innerHTML = FIELDS.map(f => `
+      <div style="margin-bottom:18px;">
+        <div class="field-label" style="font-size:12px; color:#6B7280; margin-bottom:6px;">${f.label}</div>
+        <textarea id="field_${f.key}" rows="3" style="width:100%; padding:10px; border:1px solid #D1D5DB; border-radius:6px; font-family:inherit; font-size:14px;">${map[f.key] || ""}</textarea>
+      </div>`).join("") + `<button class="btn btn-primary" onclick="saveAll()">Save Changes</button>`;
+  } catch (e) {
+    panel.innerHTML = `<div class="status">Couldn't load content.</div>`;
+  }
+}
+
+async function saveAll() {
+  for (const f of FIELDS) {
+    const value = document.getElementById(`field_${f.key}`).value;
+    await adminSend(`/admin/content/${f.key}`, "PUT", { key: f.key, value });
+  }
+  alert("Saved.");
+}
+
+loadContent();
+</script>
+</body>
+</html>

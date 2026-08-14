@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product — Focus</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">FOCUS</div>
+  <nav class="main-nav">
+    <a href="shop.html">New Arrivals</a>
+    <a href="shop.html?category=necklaces">Jewellery</a>
+    <a href="shop.html">Collections</a>
+    <a href="shop.html">Occasions</a>
+    <a href="shop.html?badge=BESTSELLER">Best Sellers</a>
+  </nav>
+  <div class="header-icons">
+    <span>🔍</span><a href="wishlist.html">♡</a><span>👜</span>
+  </div>
+</header>
+
+<div id="pdpRoot" class="status">Loading…</div>
+
+<footer class="site-footer" id="siteFooter">© 2026 Focus. Developed by De Prudent Store Designer.</footer>
+
+<script src="js/config.js"></script>
+<script src="js/wishlist.js"></script>
+<script src="js/api.js"></script>
+<script>
+(async function () {
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get("slug");
+  const root = document.getElementById("pdpRoot");
+  if (!slug) { root.textContent = "No product specified."; return; }
+
+  let product;
+  try {
+    product = await apiGet(`/products/${slug}`);
+  } catch (e) {
+    root.textContent = "Couldn't load this product. Is the backend running?";
+    return;
+  }
+
+  const priceHTML = product.compare_at_price
+    ? `<span class="old">${formatPrice(product.compare_at_price)}</span>${formatPrice(product.price)}`
+    : formatPrice(product.price);
+
+  const sizeList = (product.sizes || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const sizeSelectorHTML = sizeList.length
+    ? `<div class="field-label">Size</div>
+       <div class="size-select" id="sizeSelect">
+         ${sizeList.map((s, i) => `<div class="size-btn ${i === 0 ? "selected" : ""}" data-size="${s}">${s}</div>`).join("")}
+       </div>`
+    : "";
+
+  const wished = isWishlisted(product.id);
+
+  root.className = "pdp";
+  root.innerHTML = `
+    <div class="image" style="background-image:url('${product.image_url || placeholderImage(product.name)}')"></div>
+    <div class="details">
+      <h1>${product.name}</h1>
+      <div class="price">${priceHTML}</div>
+      <div class="desc">${product.description}</div>
+      ${sizeSelectorHTML}
+      <div class="field-label">Quantity</div>
+      <div class="qty">
+        <button id="dec">−</button>
+        <span id="qtyVal">1</span>
+        <button id="inc">+</button>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-dark" id="addToBag" style="flex:1;">Add to Bag</button>
+        <button class="btn" id="pdpWish" style="border:1px solid var(--charcoal); background:#fff; display:flex; align-items:center; gap:6px; padding:0 18px;">
+          <span id="pdpWishIcon">${wished ? "♥" : "♡"}</span> Wishlist
+        </button>
+      </div>
+      <div class="meta">
+        Complimentary shipping on orders over ₹1,499<br>
+        Simple returns on eligible orders<br>
+        Secure checkout
+      </div>
+      <details class="accordion">
+        <summary>Product Details</summary>
+        <p>${product.description}</p>
+      </details>
+    </div>`;
+
+  let qty = 1;
+  let selectedSize = sizeList.length ? sizeList[0] : null;
+
+  const qtyVal = document.getElementById("qtyVal");
+  document.getElementById("inc").onclick = () => { qty++; qtyVal.textContent = qty; };
+  document.getElementById("dec").onclick = () => { if (qty > 1) qty--; qtyVal.textContent = qty; };
+
+  if (sizeList.length) {
+    document.querySelectorAll("#sizeSelect .size-btn").forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll("#sizeSelect .size-btn").forEach((b) => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedSize = btn.dataset.size;
+      };
+    });
+  }
+
+  document.getElementById("pdpWish").onclick = () => {
+    const nowWished = toggleWishlist(product.id);
+    document.getElementById("pdpWishIcon").textContent = nowWished ? "♥" : "♡";
+  };
+
+  document.getElementById("addToBag").onclick = async () => {
+    const name = prompt("Checkout — enter your name:");
+    if (!name) return;
+    const email = prompt("Email:");
+    if (!email) return;
+    try {
+      const order = await apiPost("/orders/", {
+        customer_name: name,
+        customer_email: email,
+        items: [{ product_id: product.id, quantity: qty }],
+      });
+      const sizeNote = selectedSize ? ` (Size ${selectedSize})` : "";
+      alert(`Order placed${sizeNote}! Order number: ${order.order_number}`);
+    } catch (e) {
+      alert("Couldn't place order. Please try again.");
+    }
+  };
+})();
+</script>
+<script>
+(async function () {
+  try {
+    const footerContent = await apiGet("/content/cms_footer_text");
+    if (footerContent.value) document.getElementById("siteFooter").textContent = footerContent.value;
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

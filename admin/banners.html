@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banners — Focus Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">FOCUS</div>
+      <div class="sub">Admin Console</div>
+    </div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="products.html">Products</a>
+      <a href="categories.html">Categories</a>
+      <a href="orders.html">Orders</a>
+      <a href="customers.html">Customers</a>
+      <a href="coupons.html">Coupons</a>
+      <a href="banners.html" class="active">Banners</a>
+      <a href="cms.html">CMS</a>
+      <a href="seo.html">SEO</a>
+      <a href="settings.html" id="navSettings">Settings</a>
+      <a href="admins.html" id="navAdmins">Admins</a>
+      <a href="auditlog.html" id="navAuditLog">Audit Log</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Banners</h1>
+        <div class="sub">Controls the homepage hero on the storefront.</div>
+      </div>
+      <div class="user">
+        <button class="logout-btn" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-header"><h2>Add Banner</h2></div>
+      <div style="display:grid; gap:10px; grid-template-columns: 1fr 1fr;">
+        <input type="text" id="newEyebrow" placeholder="Eyebrow (e.g. Seasonal Edit)" style="padding:9px; border:1px solid #D1D5DB; border-radius:6px;">
+        <input type="text" id="newTitle" placeholder="Title (e.g. The Festive Edit)" style="padding:9px; border:1px solid #D1D5DB; border-radius:6px;">
+        <input type="text" id="newSubtitle" placeholder="Subtitle" style="padding:9px; border:1px solid #D1D5DB; border-radius:6px; grid-column: 1 / -1;">
+        <input type="text" id="newImageUrl" placeholder="Image URL" style="padding:9px; border:1px solid #D1D5DB; border-radius:6px;">
+        <input type="text" id="newLinkUrl" placeholder="Link URL (e.g. shop.html)" style="padding:9px; border:1px solid #D1D5DB; border-radius:6px;">
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px;" onclick="createBanner()">Add Banner</button>
+    </div>
+
+    <div class="panel">
+      <table class="data-table" id="bannerTable">
+        <thead><tr><th>Title</th><th>Status</th><th>Order</th><th></th></tr></thead>
+        <tbody><tr><td colspan="4" class="status">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>applyRoleGating();</script>
+<script>
+async function loadBanners() {
+  const tbody = document.querySelector("#bannerTable tbody");
+  try {
+    const banners = await adminGet("/admin/banners");
+    tbody.innerHTML = banners.length ? banners.map(b => `
+      <tr>
+        <td>${b.title}</td>
+        <td>${b.is_active ? '<span class="pill completed">Active</span>' : '<span class="pill incompleted">Inactive</span>'}</td>
+        <td>${b.sort_order}</td>
+        <td>
+          <button class="btn" onclick="toggleBanner(${b.id}, ${!b.is_active})">${b.is_active ? "Deactivate" : "Activate"}</button>
+          <button class="btn btn-danger" onclick="deleteBanner(${b.id})">Delete</button>
+        </td>
+      </tr>`).join("") : `<tr><td colspan="4" class="status">No banners yet — storefront falls back to its default hero.</td></tr>`;
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" class="status">Couldn't load banners.</td></tr>`;
+  }
+}
+
+async function createBanner() {
+  const title = document.getElementById("newTitle").value.trim();
+  if (!title) { alert("Title is required."); return; }
+  try {
+    await adminSend("/admin/banners", "POST", {
+      title,
+      subtitle: document.getElementById("newSubtitle").value.trim(),
+      eyebrow: document.getElementById("newEyebrow").value.trim(),
+      image_url: document.getElementById("newImageUrl").value.trim(),
+      link_url: document.getElementById("newLinkUrl").value.trim(),
+      button_text: "Explore the Edit",
+      is_active: true,
+      sort_order: 0,
+    });
+    ["newEyebrow","newTitle","newSubtitle","newImageUrl","newLinkUrl"].forEach(id => document.getElementById(id).value = "");
+    loadBanners();
+  } catch (e) {
+    alert("Couldn't create banner.");
+  }
+}
+
+async function toggleBanner(id, activate) {
+  const banners = await adminGet("/admin/banners");
+  const b = banners.find(x => x.id === id);
+  if (!b) return;
+  b.is_active = activate;
+  await adminSend(`/admin/banners/${id}`, "PUT", b);
+  loadBanners();
+}
+
+async function deleteBanner(id) {
+  if (!confirm("Delete this banner?")) return;
+  await adminSend(`/admin/banners/${id}`, "DELETE");
+  loadBanners();
+}
+
+loadBanners();
+</script>
+</body>
+</html>

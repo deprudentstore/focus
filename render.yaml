@@ -1,0 +1,46 @@
+databases:
+  - name: focus-db
+    plan: free
+    databaseName: focus
+    user: focus
+
+services:
+  # --- Backend API (Python/FastAPI) ---
+  - type: web
+    name: focus-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python seed.py && gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        fromDatabase:
+          name: focus-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SEED_ADMIN_EMAIL
+        value: admin@focus.demo
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "https://focus-storefront.onrender.com,https://focus-admin.onrender.com"
+
+  # --- Storefront (static site) ---
+  - type: web
+    name: focus-storefront
+    runtime: static
+    rootDir: storefront
+    buildCommand: ""
+    staticPublishPath: .
+
+  # --- Admin console (static site, separate URL) ---
+  - type: web
+    name: focus-admin
+    runtime: static
+    rootDir: admin
+    buildCommand: ""
+    staticPublishPath: .

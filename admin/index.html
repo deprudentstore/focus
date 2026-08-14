@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus Admin — Login</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    <h1>FOCUS</h1>
+    <div class="sub">Admin Console</div>
+    <div class="error" id="error" style="display:none"></div>
+    <input type="email" id="email" placeholder="Email" value="admin@focus.demo">
+    <input type="password" id="password" placeholder="Password">
+    <button id="loginBtn">Log in</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script>
+document.getElementById("loginBtn").onclick = async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const errorEl = document.getElementById("error");
+  errorEl.style.display = "none";
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) throw new Error("Invalid credentials");
+    const data = await res.json();
+    localStorage.setItem("admin_token", data.access_token);
+
+    // Fetch role so we can gate nav items on other pages
+    const meRes = await fetch(`${API_BASE_URL}/admin/me`, {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+    if (meRes.ok) {
+      const me = await meRes.json();
+      localStorage.setItem("admin_role", me.role);
+      localStorage.setItem("admin_name", me.name);
+    }
+
+    window.location.href = "dashboard.html";
+  } catch (e) {
+    errorEl.textContent = "Invalid email or password.";
+    errorEl.style.display = "block";
+  }
+};
+</script>
+</body>
+</html>

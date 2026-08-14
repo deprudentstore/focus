@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wishlist — Focus</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">FOCUS</div>
+  <nav class="main-nav">
+    <a href="shop.html">New Arrivals</a>
+    <a href="shop.html?category=necklaces">Jewellery</a>
+    <a href="shop.html">Collections</a>
+    <a href="shop.html">Occasions</a>
+    <a href="shop.html?badge=BESTSELLER">Best Sellers</a>
+  </nav>
+  <div class="header-icons">
+    <span>🔍</span><a href="wishlist.html">♥</a><span>👜</span>
+  </div>
+</header>
+
+<section class="section">
+  <div class="section-header">
+    <h2>Your Wishlist</h2>
+    <a href="shop.html" class="link-more">Shop All →</a>
+  </div>
+  <div class="grid" id="wishlistGrid">
+    <div class="status">Loading…</div>
+  </div>
+</section>
+
+<footer class="site-footer" id="siteFooter">© 2026 Focus. Developed by De Prudent Store Designer.</footer>
+
+<script src="js/config.js"></script>
+<script src="js/wishlist.js"></script>
+<script src="js/api.js"></script>
+<script>
+(async function () {
+  const grid = document.getElementById("wishlistGrid");
+  const savedIds = getWishlist();
+
+  if (!savedIds.length) {
+    grid.innerHTML = `<div class="status">Your wishlist is empty. Tap the ♡ on any product to save it here.</div>`;
+    return;
+  }
+
+  try {
+    const allProducts = await apiGet("/products");
+    const saved = allProducts.filter((p) => savedIds.includes(p.id));
+    grid.innerHTML = saved.length
+      ? saved.map(productCardHTML).join("")
+      : `<div class="status">Your wishlist is empty. Tap the ♡ on any product to save it here.</div>`;
+  } catch (e) {
+    grid.innerHTML = `<div class="status">Couldn't load your wishlist. Is the backend running?</div>`;
+  }
+})();
+</script>
+<script>
+(async function () {
+  try {
+    const footerContent = await apiGet("/content/cms_footer_text");
+    if (footerContent.value) document.getElementById("siteFooter").textContent = footerContent.value;
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

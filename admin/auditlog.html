@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit Log — Focus Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">FOCUS</div>
+      <div class="sub">Admin Console</div>
+    </div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="products.html">Products</a>
+      <a href="categories.html">Categories</a>
+      <a href="orders.html">Orders</a>
+      <a href="customers.html">Customers</a>
+      <a href="coupons.html">Coupons</a>
+      <a href="banners.html">Banners</a>
+      <a href="cms.html">CMS</a>
+      <a href="seo.html">SEO</a>
+      <a href="settings.html" id="navSettings">Settings</a>
+      <a href="admins.html" id="navAdmins">Admins</a>
+      <a href="auditlog.html" id="navAuditLog" class="active">Audit Log</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Audit Log</h1>
+        <div class="sub">Every login and change made in this console. Manager access or higher.</div>
+      </div>
+      <div class="user">
+        <button class="logout-btn" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <table class="data-table" id="auditTable">
+        <thead><tr><th>When</th><th>Admin</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead>
+        <tbody><tr><td colspan="5" class="status">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>applyRoleGating();</script>
+<script>
+(async function () {
+  const tbody = document.querySelector("#auditTable tbody");
+  try {
+    const logs = await adminGet("/admin/audit-log?limit=200");
+    tbody.innerHTML = logs.length ? logs.map(l => `
+      <tr>
+        <td>${new Date(l.created_at).toLocaleString()}</td>
+        <td>${l.admin_email}</td>
+        <td>${actionPill(l.action)}</td>
+        <td>${l.entity_type}${l.entity_id ? " #" + l.entity_id : ""}</td>
+        <td style="color:#6B7280; font-size:13px;">${l.details || "—"}</td>
+      </tr>`).join("") : `<tr><td colspan="5" class="status">No activity logged yet.</td></tr>`;
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="status">Couldn't load audit log — this page requires manager access or higher.</td></tr>`;
+  }
+})();
+
+function actionPill(action) {
+  const colorClass = action === "delete" ? "incompleted" : action === "login" ? "shipped" : action === "create" ? "completed" : "pending";
+  return `<span class="pill ${colorClass}">${action}</span>`;
+}
+</script>
+</body>
+</html>

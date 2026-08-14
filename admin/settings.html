@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Focus Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">FOCUS</div>
+      <div class="sub">Admin Console</div>
+    </div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="products.html">Products</a>
+      <a href="categories.html">Categories</a>
+      <a href="orders.html">Orders</a>
+      <a href="customers.html">Customers</a>
+      <a href="coupons.html">Coupons</a>
+      <a href="banners.html">Banners</a>
+      <a href="cms.html">CMS</a>
+      <a href="seo.html">SEO</a>
+      <a href="settings.html" id="navSettings" class="active">Settings</a>
+      <a href="admins.html" id="navAdmins">Admins</a>
+      <a href="auditlog.html" id="navAuditLog">Audit Log</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Settings</h1>
+        <div class="sub">Store-wide configuration.</div>
+      </div>
+      <div class="user">
+        <button class="logout-btn" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="panel" id="settingsPanel">
+      <div class="status">Loading…</div>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>applyRoleGating();</script>
+<script>
+const FIELDS = [
+  { key: "setting_store_name", label: "Store Name" },
+  { key: "setting_support_email", label: "Support Email" },
+  { key: "setting_support_phone", label: "Support Phone" },
+  { key: "setting_currency_symbol", label: "Currency Symbol" },
+  { key: "setting_low_stock_threshold", label: "Low Stock Threshold (units)" },
+];
+
+async function loadContent() {
+  const panel = document.getElementById("settingsPanel");
+  try {
+    const items = await adminGet("/admin/content?prefix=setting_");
+    const map = {};
+    items.forEach(i => map[i.key] = i.value);
+
+    panel.innerHTML = FIELDS.map(f => `
+      <div style="margin-bottom:18px;">
+        <div class="field-label" style="font-size:12px; color:#6B7280; margin-bottom:6px;">${f.label}</div>
+        <input id="field_${f.key}" value="${(map[f.key] || "").replace(/"/g, '&quot;')}" style="width:100%; max-width:400px; padding:10px; border:1px solid #D1D5DB; border-radius:6px; font-size:14px;">
+      </div>`).join("") + `<button class="btn btn-primary" onclick="saveAll()">Save Changes</button>`;
+  } catch (e) {
+    panel.innerHTML = `<div class="status">Couldn't load settings.</div>`;
+  }
+}
+
+async function saveAll() {
+  for (const f of FIELDS) {
+    const value = document.getElementById(`field_${f.key}`).value;
+    await adminSend(`/admin/content/${f.key}`, "PUT", { key: f.key, value });
+  }
+  alert("Saved. The Low Stock threshold takes effect on the next Dashboard load.");
+}
+
+loadContent();
+</script>
+</body>
+</html>

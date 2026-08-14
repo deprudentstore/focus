@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orders — Focus Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">FOCUS</div>
+      <div class="sub">Admin Console</div>
+    </div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="products.html">Products</a>
+      <a href="categories.html">Categories</a>
+      <a href="orders.html" class="active">Orders</a>
+      <a href="customers.html">Customers</a>
+      <a href="coupons.html">Coupons</a>
+      <a href="banners.html">Banners</a>
+      <a href="cms.html">CMS</a>
+      <a href="seo.html">SEO</a>
+      <a href="settings.html" id="navSettings">Settings</a>
+      <a href="admins.html" id="navAdmins">Admins</a>
+      <a href="auditlog.html" id="navAuditLog">Audit Log</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Orders</h1>
+        <div class="sub">All customer orders.</div>
+      </div>
+      <div class="user">
+        <button class="logout-btn" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <table class="data-table" id="orderTable">
+        <thead>
+          <tr><th>Order #</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr>
+        </thead>
+        <tbody><tr><td colspan="5" class="status">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>applyRoleGating();</script>
+<script>
+(async function () {
+  const tbody = document.querySelector("#orderTable tbody");
+  try {
+    const orders = await adminGet("/admin/orders");
+    tbody.innerHTML = orders.length ? orders.map(o => `
+      <tr>
+        <td>${o.order_number}</td>
+        <td>${o.customer_name}</td>
+        <td>${formatPrice(o.total)}</td>
+        <td>${statusPill(o.status)}</td>
+        <td>${new Date(o.created_at).toLocaleDateString()}</td>
+      </tr>`).join("") : `<tr><td colspan="5" class="status">No orders yet.</td></tr>`;
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="status">Couldn't load orders.</td></tr>`;
+  }
+})();
+</script>
+</body>
+</html>

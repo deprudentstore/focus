@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coupons — Focus Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">FOCUS</div>
+      <div class="sub">Admin Console</div>
+    </div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="products.html">Products</a>
+      <a href="categories.html">Categories</a>
+      <a href="orders.html">Orders</a>
+      <a href="customers.html">Customers</a>
+      <a href="coupons.html" class="active">Coupons</a>
+      <a href="banners.html">Banners</a>
+      <a href="cms.html">CMS</a>
+      <a href="seo.html">SEO</a>
+      <a href="settings.html" id="navSettings">Settings</a>
+      <a href="admins.html" id="navAdmins">Admins</a>
+      <a href="auditlog.html" id="navAuditLog">Audit Log</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Coupons</h1>
+        <div class="sub">Discount codes customers can apply at checkout.</div>
+      </div>
+      <div class="user">
+        <button class="logout-btn" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-header"><h2>Add Coupon</h2></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="newCode" placeholder="CODE (e.g. WELCOME10)" style="flex:1; min-width:160px; padding:9px; border:1px solid #D1D5DB; border-radius:6px;">
+        <input type="number" id="newPercent" placeholder="% off (e.g. 10)" style="width:130px; padding:9px; border:1px solid #D1D5DB; border-radius:6px;">
+        <span style="color:#6B7280; font-size:13px;">or</span>
+        <input type="number" id="newAmount" placeholder="₹ off (e.g. 200)" style="width:130px; padding:9px; border:1px solid #D1D5DB; border-radius:6px;">
+        <button class="btn btn-primary" onclick="createCoupon()">Add</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <table class="data-table" id="couponTable">
+        <thead><tr><th>Code</th><th>Discount</th><th>Status</th><th></th></tr></thead>
+        <tbody><tr><td colspan="4" class="status">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>applyRoleGating();</script>
+<script>
+async function loadCoupons() {
+  const tbody = document.querySelector("#couponTable tbody");
+  try {
+    const coupons = await adminGet("/admin/coupons");
+    tbody.innerHTML = coupons.length ? coupons.map(c => `
+      <tr>
+        <td><strong>${c.code}</strong></td>
+        <td>${c.discount_percent ? c.discount_percent + "% off" : formatPrice(c.discount_amount) + " off"}</td>
+        <td>${c.is_active ? '<span class="pill completed">Active</span>' : '<span class="pill incompleted">Inactive</span>'}</td>
+        <td><button class="btn btn-danger" onclick="deleteCoupon(${c.id})">Delete</button></td>
+      </tr>`).join("") : `<tr><td colspan="4" class="status">No coupons yet.</td></tr>`;
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" class="status">Couldn't load coupons.</td></tr>`;
+  }
+}
+
+async function createCoupon() {
+  const code = document.getElementById("newCode").value.trim();
+  const percent = document.getElementById("newPercent").value;
+  const amount = document.getElementById("newAmount").value;
+  if (!code || (!percent && !amount)) { alert("Enter a code and either a % or ₹ discount."); return; }
+  try {
+    await adminSend("/admin/coupons", "POST", {
+      code,
+      discount_percent: percent ? parseFloat(percent) : null,
+      discount_amount: amount ? parseFloat(amount) : null,
+      is_active: true,
+    });
+    document.getElementById("newCode").value = "";
+    document.getElementById("newPercent").value = "";
+    document.getElementById("newAmount").value = "";
+    loadCoupons();
+  } catch (e) {
+    alert("Couldn't create coupon — code may already exist.");
+  }
+}
+
+async function deleteCoupon(id) {
+  if (!confirm("Delete this coupon?")) return;
+  await adminSend(`/admin/coupons/${id}`, "DELETE");
+  loadCoupons();
+}
+
+loadCoupons();
+</script>
+</body>
+</html>

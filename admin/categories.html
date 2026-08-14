@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Categories — Focus Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">FOCUS</div>
+      <div class="sub">Admin Console</div>
+    </div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="products.html">Products</a>
+      <a href="categories.html" class="active">Categories</a>
+      <a href="orders.html">Orders</a>
+      <a href="customers.html">Customers</a>
+      <a href="coupons.html">Coupons</a>
+      <a href="banners.html">Banners</a>
+      <a href="cms.html">CMS</a>
+      <a href="seo.html">SEO</a>
+      <a href="settings.html" id="navSettings">Settings</a>
+      <a href="admins.html" id="navAdmins">Admins</a>
+      <a href="auditlog.html" id="navAuditLog">Audit Log</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Categories</h1>
+        <div class="sub">Organize your product catalog.</div>
+      </div>
+      <div class="user">
+        <button class="logout-btn" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-header"><h2>Add Category</h2></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <input type="text" id="newName" placeholder="Name (e.g. Anklets)" style="flex:1; min-width:160px; padding:9px; border:1px solid #D1D5DB; border-radius:6px;">
+        <input type="text" id="newSlug" placeholder="Slug (e.g. anklets)" style="flex:1; min-width:160px; padding:9px; border:1px solid #D1D5DB; border-radius:6px;">
+        <button class="btn btn-primary" onclick="createCategory()">Add</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <table class="data-table" id="categoryTable">
+        <thead><tr><th>Name</th><th>Slug</th><th></th></tr></thead>
+        <tbody><tr><td colspan="3" class="status">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>applyRoleGating();</script>
+<script>
+async function loadCategories() {
+  const tbody = document.querySelector("#categoryTable tbody");
+  try {
+    const categories = await adminGet("/admin/categories");
+    tbody.innerHTML = categories.length ? categories.map(c => `
+      <tr>
+        <td>${c.name}</td>
+        <td>${c.slug}</td>
+        <td><button class="btn btn-danger" onclick="deleteCategory(${c.id})">Delete</button></td>
+      </tr>`).join("") : `<tr><td colspan="3" class="status">No categories yet.</td></tr>`;
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="3" class="status">Couldn't load categories.</td></tr>`;
+  }
+}
+
+async function createCategory() {
+  const name = document.getElementById("newName").value.trim();
+  const slug = document.getElementById("newSlug").value.trim().toLowerCase();
+  if (!name || !slug) { alert("Enter both a name and a slug."); return; }
+  try {
+    await adminSend("/admin/categories", "POST", { name, slug });
+    document.getElementById("newName").value = "";
+    document.getElementById("newSlug").value = "";
+    loadCategories();
+  } catch (e) {
+    alert("Couldn't create category — slug may already exist.");
+  }
+}
+
+async function deleteCategory(id) {
+  if (!confirm("Delete this category?")) return;
+  await adminSend(`/admin/categories/${id}`, "DELETE");
+  loadCategories();
+}
+
+loadCategories();
+</script>
+</body>
+</html>
